@@ -57,14 +57,6 @@ describe('CatalogBuilder', () => {
           },
         },
       ])
-      .replaceEntityKinds([
-        {
-          async enforce(entity: Entity) {
-            expect(entity.metadata.namespace).toBe('ns');
-            return entity;
-          },
-        },
-      ])
       .setPlaceholderResolver('t', async ({ value }) => {
         expect(value).toBe('tt');
         return 'tt2';
@@ -85,15 +77,16 @@ describe('CatalogBuilder', () => {
             expect(location.type).toBe('test');
             emit(
               result.entity(location, {
-                apiVersion: 'av',
+                apiVersion: 'backstage.io/v1alpha1',
                 kind: 'Component',
                 metadata: { name: 'n', replaced: { $t: 'tt' } },
+                spec: { type: 't', owner: 'o', lifecycle: 'l' },
               }),
             );
             return true;
           },
           async preProcessEntity(entity: Entity) {
-            expect(entity.apiVersion).toBe('av');
+            expect(entity.apiVersion).toBe('backstage.io/v1alpha1');
             return {
               ...entity,
               metadata: { ...entity.metadata, namespace: 'ns' },
@@ -114,10 +107,10 @@ describe('CatalogBuilder', () => {
       type: 'test',
       target: '',
     });
-    expect.assertions(7);
+    expect.assertions(6);
     expect(added.entities).toEqual([
       {
-        apiVersion: 'av',
+        apiVersion: 'backstage.io/v1alpha1',
         kind: 'Component',
         metadata: {
           name: 'n',
@@ -127,6 +120,11 @@ describe('CatalogBuilder', () => {
           uid: expect.any(String),
           etag: expect.any(String),
           generation: expect.any(Number),
+        },
+        spec: {
+          type: 't',
+          owner: 'o',
+          lifecycle: 'l',
         },
         relations: [],
       },

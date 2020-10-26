@@ -22,7 +22,7 @@ import Router from 'express-promise-router';
 import { Logger } from 'winston';
 import { EntitiesCatalog, LocationsCatalog } from '../catalog';
 import { HigherOrderOperation } from '../ingestion/types';
-import { translateQueryToEntityFilters } from './filterQuery';
+import { EntityFilters } from './EntityFilters';
 import { requireRequestBody, validateRequestBody } from './util';
 
 export interface RouterOptions {
@@ -43,8 +43,8 @@ export async function createRouter(
   if (entitiesCatalog) {
     router
       .get('/entities', async (req, res) => {
-        const filters = translateQueryToEntityFilters(req.query);
-        const entities = await entitiesCatalog.entities(filters);
+        const filter = EntityFilters.ofQuery(req.query);
+        const entities = await entitiesCatalog.entities(filter);
         res.status(200).send(entities);
       })
       .post('/entities', async (req, res) => {
@@ -52,18 +52,16 @@ export async function createRouter(
         const [result] = await entitiesCatalog.batchAddOrUpdateEntities([
           { entity: body as Entity, relations: [] },
         ]);
-        const [entity] = await entitiesCatalog.entities([
-          { 'metadata.uid': result.entityId },
-        ]);
+        const [entity] = await entitiesCatalog.entities(
+          EntityFilters.ofMatchers({ 'metadata.uid': result.entityId }),
+        );
         res.status(200).send(entity);
       })
       .get('/entities/by-uid/:uid', async (req, res) => {
         const { uid } = req.params;
-        const entities = await entitiesCatalog.entities([
-          {
-            'metadata.uid': uid,
-          },
-        ]);
+        const entities = await entitiesCatalog.entities(
+          EntityFilters.ofMatchers({ 'metadata.uid': uid }),
+        );
         if (!entities.length) {
           res.status(404).send(`No entity with uid ${uid}`);
         }
@@ -76,13 +74,13 @@ export async function createRouter(
       })
       .get('/entities/by-name/:kind/:namespace/:name', async (req, res) => {
         const { kind, namespace, name } = req.params;
-        const entities = await entitiesCatalog.entities([
-          {
+        const entities = await entitiesCatalog.entities(
+          EntityFilters.ofMatchers({
             kind: kind,
             'metadata.namespace': namespace,
             'metadata.name': name,
-          },
-        ]);
+          }),
+        );
         if (!entities.length) {
           res
             .status(404)

@@ -21,6 +21,7 @@ import request from 'supertest';
 import { EntitiesCatalog, LocationsCatalog } from '../catalog';
 import { LocationResponse } from '../catalog/types';
 import { HigherOrderOperation } from '../ingestion/types';
+import { EntityFilters } from './EntityFilters';
 import { createRouter } from './router';
 
 describe('createRouter', () => {
@@ -77,18 +78,22 @@ describe('createRouter', () => {
 
     it('parses single and multiple request parameters and passes them down', async () => {
       const response = await request(app).get(
-        '/entities?filter=a=1,a=,a=3,b=4&filter=c=',
+        '/entities?filter=a=1,a=2,b=3&filter=c=4',
       );
 
       expect(response.status).toEqual(200);
       expect(entitiesCatalog.entities).toHaveBeenCalledTimes(1);
-      expect(entitiesCatalog.entities).toHaveBeenCalledWith([
-        {
-          a: ['1', null, '3'],
-          b: ['4'],
-        },
-        { c: [null] },
-      ]);
+      expect(entitiesCatalog.entities).toHaveBeenCalledWith({
+        anyOf: [
+          {
+            allOf: [
+              { key: 'a', matchValueIn: ['1', '2'] },
+              { key: 'b', matchValueIn: ['3'] },
+            ],
+          },
+          { allOf: [{ key: 'c', matchValueIn: ['4'] }] },
+        ],
+      });
     });
   });
 
@@ -106,9 +111,9 @@ describe('createRouter', () => {
       const response = await request(app).get('/entities/by-uid/zzz');
 
       expect(entitiesCatalog.entities).toHaveBeenCalledTimes(1);
-      expect(entitiesCatalog.entities).toHaveBeenCalledWith([
-        { 'metadata.uid': 'zzz' },
-      ]);
+      expect(entitiesCatalog.entities).toHaveBeenCalledWith(
+        EntityFilters.ofMatchers({ 'metadata.uid': 'zzz' }),
+      );
       expect(response.status).toEqual(200);
       expect(response.body).toEqual(expect.objectContaining(entity));
     });
@@ -119,9 +124,9 @@ describe('createRouter', () => {
       const response = await request(app).get('/entities/by-uid/zzz');
 
       expect(entitiesCatalog.entities).toHaveBeenCalledTimes(1);
-      expect(entitiesCatalog.entities).toHaveBeenCalledWith([
-        { 'metadata.uid': 'zzz' },
-      ]);
+      expect(entitiesCatalog.entities).toHaveBeenCalledWith(
+        EntityFilters.ofMatchers({ 'metadata.uid': 'zzz' }),
+      );
       expect(response.status).toEqual(404);
       expect(response.text).toMatch(/uid/);
     });
@@ -142,13 +147,13 @@ describe('createRouter', () => {
       const response = await request(app).get('/entities/by-name/k/ns/n');
 
       expect(entitiesCatalog.entities).toHaveBeenCalledTimes(1);
-      expect(entitiesCatalog.entities).toHaveBeenCalledWith([
-        {
+      expect(entitiesCatalog.entities).toHaveBeenCalledWith(
+        EntityFilters.ofMatchers({
           kind: 'k',
           'metadata.namespace': 'ns',
           'metadata.name': 'n',
-        },
-      ]);
+        }),
+      );
       expect(response.status).toEqual(200);
       expect(response.body).toEqual(expect.objectContaining(entity));
     });
@@ -159,13 +164,13 @@ describe('createRouter', () => {
       const response = await request(app).get('/entities/by-name/b/d/c');
 
       expect(entitiesCatalog.entities).toHaveBeenCalledTimes(1);
-      expect(entitiesCatalog.entities).toHaveBeenCalledWith([
-        {
+      expect(entitiesCatalog.entities).toHaveBeenCalledWith(
+        EntityFilters.ofMatchers({
           kind: 'b',
           'metadata.namespace': 'd',
           'metadata.name': 'c',
-        },
-      ]);
+        }),
+      );
       expect(response.status).toEqual(404);
       expect(response.text).toMatch(/name/);
     });
@@ -208,9 +213,9 @@ describe('createRouter', () => {
         { entity, relations: [] },
       ]);
       expect(entitiesCatalog.entities).toHaveBeenCalledTimes(1);
-      expect(entitiesCatalog.entities).toHaveBeenCalledWith([
-        { 'metadata.uid': 'u' },
-      ]);
+      expect(entitiesCatalog.entities).toHaveBeenCalledWith(
+        EntityFilters.ofMatchers({ 'metadata.uid': 'u' }),
+      );
       expect(response.status).toEqual(200);
       expect(response.body).toEqual(entity);
     });

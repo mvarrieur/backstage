@@ -20,6 +20,6 @@ export type {
   Database,
   DbEntityRequest,
   DbEntityResponse,
+  EntitiesSearchFilter,
   EntityFilter,
-  EntityFilters,
 } from './types';

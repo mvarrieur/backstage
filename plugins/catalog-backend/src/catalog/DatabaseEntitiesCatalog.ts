@@ -16,18 +16,19 @@
 
 import { ConflictError, NotFoundError } from '@backstage/backend-common';
 import {
+  Entity,
   entityHasChanges,
+  EntityRelationSpec,
   generateUpdatedEntity,
   getEntityName,
   LOCATION_ANNOTATION,
   serializeEntityRef,
-  Entity,
-  EntityRelationSpec,
 } from '@backstage/catalog-model';
 import { chunk, groupBy } from 'lodash';
 import limiterFactory from 'p-limit';
 import { Logger } from 'winston';
-import type { Database, DbEntityResponse, EntityFilters } from '../database';
+import type { Database, DbEntityResponse, EntityFilter } from '../database';
+import { EntityFilters } from '../service/EntityFilters';
 import { durationText } from '../util/timing';
 import type {
   EntitiesCatalog,
@@ -60,9 +61,9 @@ export class DatabaseEntitiesCatalog implements EntitiesCatalog {
     private readonly logger: Logger,
   ) {}
 
-  async entities(filters?: EntityFilters[]): Promise<Entity[]> {
+  async entities(filter?: EntityFilter): Promise<Entity[]> {
     const items = await this.database.transaction(tx =>
-      this.database.entities(tx, filters),
+      this.database.entities(tx, filter),
     );
     return items.map(i => i.entity);
   }
@@ -109,9 +110,12 @@ export class DatabaseEntitiesCatalog implements EntitiesCatalog {
       const location =
         entityResponse.entity.metadata.annotations?.[LOCATION_ANNOTATION];
       const colocatedEntities = location
-        ? await this.database.entities(tx, [
-            { [`metadata.annotations.${LOCATION_ANNOTATION}`]: location },
-          ])
+        ? await this.database.entities(
+            tx,
+            EntityFilters.ofMatchers({
+              [`metadata.annotations.${LOCATION_ANNOTATION}`]: location,
+            }),
+          )
         : [entityResponse];
       for (const dbResponse of colocatedEntities) {
         await this.database.removeEntityByUid(
@@ -234,13 +238,13 @@ export class DatabaseEntitiesCatalog implements EntitiesCatalog {
     const markTimestamp = process.hrtime();
 
     const names = requests.map(({ entity }) => entity.metadata.name);
-    const oldEntities = await this.entities([
-      {
+    const oldEntities = await this.entities(
+      EntityFilters.ofMatchers({
         kind: kind,
         'metadata.namespace': namespace,
         'metadata.name': names,
-      },
-    ]);
+      }),
+    );
 
     const oldEntitiesByName = new Map(
       oldEntities.map(e => [e.metadata.name, e]),

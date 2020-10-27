@@ -13,21 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useEffect } from 'react';
+import {
+  ENTITY_DEFAULT_NAMESPACE,
+  TemplateEntityV1alpha1,
+} from '@backstage/catalog-model';
+import { Button } from '@backstage/core';
+import { entityRoute, entityRouteParams } from '@backstage/plugin-catalog';
 import {
   Dialog,
-  LinearProgress,
-  DialogTitle,
-  DialogContent,
   DialogActions,
+  DialogContent,
+  DialogTitle,
+  LinearProgress,
 } from '@material-ui/core';
+import React, { useEffect, useState } from 'react';
+import { generatePath } from 'react-router-dom';
+import { Job } from '../../types';
 import { JobStage } from '../JobStage/JobStage';
 import { useJobPolling } from './useJobPolling';
-import { Job } from '../../types';
-import { TemplateEntityV1alpha1 } from '@backstage/catalog-model';
-import { Button } from '@backstage/core';
-import { entityRoute } from '@backstage/plugin-catalog';
-import { generatePath } from 'react-router-dom';
 
 type Props = {
   onClose: () => void;
@@ -75,15 +78,10 @@ export const JobStatusModal = ({
       {entity && (
         <DialogActions>
           <Button
-            to={generatePath(`/catalog/${entityRoute.path}`, {
-              kind: entity.kind,
-              optionalNamespaceAndName: [
-                entity.metadata.namespace,
-                entity.metadata.name,
-              ]
-                .filter(Boolean)
-                .join(':'),
-            })}
+            to={generatePath(
+              `/catalog/${entityRoute.path}`,
+              entityRouteParams(entity),
+            )}
           >
             View in catalog
           </Button>

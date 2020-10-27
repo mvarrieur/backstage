@@ -13,7 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Entity, LocationSpec } from '@backstage/catalog-model';
+import {
+  Entity,
+  ENTITY_DEFAULT_NAMESPACE,
+  LocationSpec,
+} from '@backstage/catalog-model';
 import { Table, TableColumn, TableProps } from '@backstage/core';
 import { Chip, Link } from '@material-ui/core';
 import Edit from '@material-ui/icons/Edit';
@@ -22,8 +26,8 @@ import { Alert } from '@material-ui/lab';
 import React from 'react';
 import { generatePath, Link as RouterLink } from 'react-router-dom';
 import { findLocationForEntityMeta } from '../../data/utils';
-import { useStarredEntities } from '../../hooks/useStarredEntites';
-import { entityRoute } from '../../routes';
+import { useStarredEntities } from '../../hooks/useStarredEntities';
+import { entityRoute, entityRouteParams } from '../../routes';
 import {
   favouriteEntityIcon,
   favouriteEntityTooltip,
@@ -38,13 +42,7 @@ const columns: TableColumn<Entity>[] = [
       <Link
         component={RouterLink}
         to={generatePath(entityRoute.path, {
-          optionalNamespaceAndName: [
-            entity.metadata.namespace,
-            entity.metadata.name,
-          ]
-            .filter(Boolean)
-            .join(':'),
-          kind: entity.kind,
+          ...entityRouteParams(entity),
           selectedTabId: 'overview',
         })}
       >

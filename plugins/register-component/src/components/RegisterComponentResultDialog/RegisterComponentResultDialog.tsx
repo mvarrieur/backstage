@@ -27,10 +27,10 @@ import {
   DialogActions,
   Button,
 } from '@material-ui/core';
-import { Entity } from '@backstage/catalog-model';
+import { Entity, ENTITY_DEFAULT_NAMESPACE } from '@backstage/catalog-model';
 import { StructuredMetadataTable, RouteRef } from '@backstage/core';
 import { generatePath, resolvePath } from 'react-router';
-import { entityRoute } from '@backstage/plugin-catalog';
+import { entityRoute, entityRouteParams } from '@backstage/plugin-catalog';
 import { Link as RouterLink } from 'react-router-dom';
 
 type Props = {
@@ -47,22 +47,16 @@ const getEntityCatalogPath = ({
   entity: Entity;
   catalogRouteRef: RouteRef;
 }) => {
-  const optionalNamespaceAndName = [
-    entity.metadata.namespace,
-    entity.metadata.name,
-  ]
-    .filter(Boolean)
-    .join(':');
-
-  const relativeEntityPathInsideCatalog = generatePath(entityRoute.path, {
-    optionalNamespaceAndName,
-    kind: entity.kind,
-  });
+  const relativeEntityPathInsideCatalog = generatePath(
+    entityRoute.path,
+    entityRouteParams(entity),
+  );
 
   const resolvedAbsolutePath = resolvePath(
     relativeEntityPathInsideCatalog,
     catalogRouteRef.path,
   )?.pathname;
+
   return resolvedAbsolutePath;
 };
 
